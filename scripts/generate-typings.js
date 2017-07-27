@@ -6,6 +6,8 @@ const blue = chalk.blue;
 const mapping = require("../globals");
 const reserved = require("../reserved");
 
+const modulesToSkip = ["rsvp", "jquery", "@ember/error"]; //todo: remove @ember/error after Ember.Error is changed from any
+
 function normalize(key) {
   let row = mapping[key];
 
@@ -46,14 +48,14 @@ function buildTable(result, row) {
 
   let [afterIdentifier, afterPackage, afterExportName] = tableRow(row.before, row.row);
 
-  return group.rows.push([afterIdentifier, afterPackage, afterExportName, row.row]), result;
+  return group.rows.push([afterIdentifier, afterPackage, afterExportName, row.before, row.row]), result;
 }
 
 function cmp(a, b) {
   return (a > b) ? 1 : (a < b) ? -1 : 0;
 }
 
-function sortByPackageAndExport([, , , a], [, , , b]) {
+function sortByPackageAndExport([, , , , a], [, , , , b]) {
   if (a[0] === b[0]) {
     return cmp(a[1] || "", b[1] || "");
   }
@@ -63,6 +65,9 @@ function sortByPackageAndExport([, , , a], [, , , b]) {
 
 function printTable(table) {
   Object.keys(table).map(name => {
+    if (modulesToSkip.indexOf(name) > -1) {
+      return;
+    }
     print("declare module \"" + name + "\" {");
 
     let group = table[name];
@@ -70,14 +75,11 @@ function printTable(table) {
 
     rows = rows.sort(sortByPackageAndExport);
 
-    rows.map(([afterIdentifier, afterPackage, afterExportName], i) => {
+    rows.map(([afterIdentifier, afterPackage, afterExportName, before]) => {
       if (afterExportName) {
-        print("  export function " + afterExportName + "() {\n  }");
+        print("    export const " + afterExportName + ": typeof Ember." + before + ";");
       } else {
-        print("  export class " + afterIdentifier + " {\n  }");
-      }
-      if (i !== rows.length - 1) {
-        print();
+        print("    export class " + afterIdentifier + " extends Ember." + before + " { }");
       }
     });
 
