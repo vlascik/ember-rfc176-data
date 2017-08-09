@@ -68,18 +68,20 @@ function printTable(table) {
     if (modulesToSkip.indexOf(name) > -1) {
       return;
     }
-    print("declare module \"" + name + "\" {");
+    print("declare module '" + name + "' {");
 
     let group = table[name];
     let rows = group.rows;
 
     rows = rows.sort(sortByPackageAndExport);
 
+    print("    import Ember from 'ember';");
+
     rows.map(([afterIdentifier, afterPackage, afterExportName, before]) => {
       if (afterExportName) {
         print("    export const " + afterExportName + ": typeof Ember." + before + ";");
       } else {
-        print("    export class " + afterIdentifier + " extends Ember." + before + " { }");
+        print("    export default class " + afterIdentifier + " extends Ember." + before + " { }");
       }
     });
 
